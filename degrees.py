@@ -1,5 +1,7 @@
 import csv
 import sys
+import time
+
 
 from util import Node, StackFrontier, QueueFrontier
 
@@ -31,6 +33,7 @@ def load_data(directory):
             else:
                 names[row["name"].lower()].add(row["id"])
 
+
     # Load movies
     with open(f"{directory}/movies.csv", encoding="utf-8") as f:
         reader = csv.DictReader(f)
@@ -40,6 +43,7 @@ def load_data(directory):
                 "year": row["year"],
                 "stars": set()
             }
+
 
     # Load stars
     with open(f"{directory}/stars.csv", encoding="utf-8") as f:
@@ -62,10 +66,10 @@ def main():
     load_data(directory)
     print("Data loaded.")
 
-    source = person_id_for_name(input("Name: "))
+    source = person_id_for_name(input("Source Name: "))
     if source is None:
         sys.exit("Person not found.")
-    target = person_id_for_name(input("Name: "))
+    target = person_id_for_name(input("Target Name: "))
     if target is None:
         sys.exit("Person not found.")
 
@@ -92,8 +96,36 @@ def shortest_path(source, target):
     If no possible path, returns None.
     """
 
-    # TODO
-    raise NotImplementedError
+    # Initialize the frontier with the starting position
+    start = Node(state=source, parent=None, action=None)
+    frontier = QueueFrontier()
+    frontier.add(start)
+
+    # Set of explored person_ids
+    explored = set()
+
+    while not frontier.empty():
+        node = frontier.remove()
+
+        # If this node is the target, reconstruct the path
+        if node.state == target:
+            path = []
+            while node.parent is not None:
+                path.append((node.action, node.state))
+                node = node.parent
+            path.reverse()
+            return path
+
+        explored.add(node.state)
+
+        # Expand neighbors
+        for movie_id, person_id in neighbors_for_person(node.state):
+            if person_id not in explored and not frontier.contains_state(person_id):
+                child = Node(state=person_id, parent=node, action=movie_id)
+                frontier.add(child)
+
+    # No connection found
+    return None
 
 
 def person_id_for_name(name):
@@ -136,4 +168,7 @@ def neighbors_for_person(person_id):
 
 
 if __name__ == "__main__":
+    start_time = time.time()
     main()
+    end_time = time.time()
+    print(f"Time elapsed: {end_time - start_time}")
